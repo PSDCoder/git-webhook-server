@@ -1,8 +1,8 @@
 var commands = require('./commands');
-var os = require("os");
+var repositoryTypes = require('../modules/repository-types');
 
 module.exports = {
-    hostname: '' || os.hostname(), //used only for notifications
+    serverName: 'digital ocean (psdcoder)', //used for email notifications
     port: 8080,
     key: 'a*(3kla0kj230s',
     email: 'psdcoder@gmail.com',
@@ -10,8 +10,11 @@ module.exports = {
     commands: commands,
     repositories: {
         coins: {
+            type: repositoryTypes.GITLAB,
             path: '/var/www/MPOS/',
             commands: [
+                commands.hardReset,
+                commands.clean,
                 commands.pull
             ],
             notifyOnUpdate: true,

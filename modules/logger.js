@@ -16,8 +16,6 @@ function Logger(loggingEnabled) {
     }
 }
 
-
-
 module.exports = function(enabled) {
     return new Logger(enabled);
 };

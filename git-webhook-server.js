@@ -8,26 +8,23 @@ var conf = require('./config/main');
 var logger = require('./modules/logger')(true);
 var templates = require('./modules/templates');
 var response = require('./modules/http-response');
-var errorHandlerModule = require('./modules/error-handler');
 var notifications = require('./modules/notifications');
+var repositoryAdapters = {};
 
+//Error handler setup
+var errorHandlerModule = require('./modules/error-handler');
 var errorTasks = [
     function(message) {
         logger.log(logger.ERROR, message);
     },
     function(message) {
         if (conf.notifyOnErrors) {
-            notifications.send(templates.render('error', {error: message}));
+            notifications.send(templates.renderTemplate('error', {error: message}));
         }
     }
 ];
-
-
-var ErrorHandler = errorHandlerModule(errorTasks);
-
-process.on('uncaughtException', function (err) {
-    handleError(err.message);
-});
+var errorHandler = errorHandlerModule(errorTasks).handle;
+process.on('uncaughtException', errorHandler);
 
 http.createServer(function(req, res) {
     var requestUrl = url.parse(req.url, true);
@@ -38,7 +35,7 @@ http.createServer(function(req, res) {
     }
 
     if (req.method !== 'POST') {
-        handleError('GET request, only POST supports');
+        errorHandler('GET request, only POST supports');
         response(res, 405);
         return;
     }
@@ -51,12 +48,24 @@ http.createServer(function(req, res) {
     });
 
     req.on('end', function () {
-        var requestKey = requestUrl.query['key'];
-
-        if (requestKey !== conf.key) {
-            handleError('Invalid authentication, please check you key. ' + (requestKey ? 'Key from request: ' + requestKey : 'Key is empty'));
+        if (requestUrl.query.key !== conf.key) {
+            errorHandler('Invalid authentication, please check you key. ' + (requestUrl.query.key ? 'Key from request: ' + requestUrl.query.key : 'Key is empty'));
             response(res, 403);
+            return;
+        }
 
+        if (!requestUrl.query.repository) {
+            var repositoryMissingParam = 'You must pass "repository" GET parameter';
+
+            errorHandler(repositoryMissingParam);
+            response(res, 400, repositoryMissingParam);
+            return;
+        }
+
+        if (!conf.repositories[requestUrl.query.repository]) {
+            var unsettedUpRepository = 'You must setup hook for this repository in main config. Repostory: ' + requestUrl.query.repository;
+            errorHandler(unsettedUpRepository);
+            response(res, 400, unsettedUpRepository);
             return;
         }
 
@@ -64,46 +73,46 @@ http.createServer(function(req, res) {
             try {
                 postJson = JSON.parse(buffer);
             } catch (ex) {
-                handleError('json parsing: ' + ex.message);
+                errorHandler('json parsing: ' + ex.message);
                 response(res, 400);
                 return;
             }
         } else {
-            response(res, 400, 'You must pass correct gitlab json.');
+            var jsonError = 'You must pass correct gitlab json. Current post data: ' + buffer;
+            errorHandler(jsonError);
+            response(res, 400, jsonError);
             return;
         }
 
         switch (requestUrl.pathname) {
             case '/':
-                if (!postJson.repository || !conf.repositories[postJson.repository.name]) {
-                    response(res, 400, 'You must setup hook for this repository in webhook server. JSON: ' + buffer);
-                    return;
+                var repositoryConfig = conf.repositories[postJson.repository.name];
+
+                //cache repository adapter
+                if (!repositoryAdapters[repositoryConfig.type]) {
+                    repositoryAdapters[repositoryConfig.type] = require('./modules/repository-adapters/' + repositoryConfig.type);
                 }
 
-                var repositoriesData = conf.repositories[postJson.repository.name];
-                var pushBranch = /\/([^\/]+)$/.exec(postJson.ref)[1];
-
-                for(var n = 0, commandsLength = repositoriesData.commands.length; n < commandsLength; n++) {
-                    if (repositoriesData.branches === '*' || repositoriesData.branches[pushBranch]) {
-                        var renderedCommand = renderTemplate(repositoriesData.commands[n], {
-                            path: repositoriesData.path
+                var postUpdateData = repositoryAdapters[repositoryConfig.type].getRepositoryData();
+                for(var n = 0, commandsLength = repositoryConfig.commands.length; n < commandsLength; n++) {
+                    if (repositoryConfig.branches === '*' || repositoryConfig.branches[postUpdateData.branch]) {
+                        var renderedCommand = templates.render(repositoryConfig.commands[n], {
+                            path: repositoryConfig.path
                         });
 
                         exec(renderedCommand, function (err) {
                             if (err) {
-                                handleError(err.message);
+                                errorHandler(err);
                             }
                         });
                     }
                 }
 
-                if (repositoriesData.notifyOnUpdate) {
-                    'Repository: **repository**, branch: **branch** on **host** was updated',
-
+                if (repositoryConfig.notifyOnUpdate) {
                     sendNotification(renderTemplate(conf.commands.messages.pullSuccess, {
                         repository: postJson.repository.name,
                         branch: pushBranch,
-                        host: conf.hostname
+                        host: conf.serverName
                     }));
                 }
 

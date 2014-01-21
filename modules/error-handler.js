@@ -1,9 +1,11 @@
 function ErrorHandler(tasks) {
-    this.tasks = tasks || [];
+    tasks = tasks || [];
 
-    this.handle = function(message) {
-        for (var i = 0, tasksLength = this.tasks.length; i < tasksLength; i++) {
-            this.tasks[i](message);
+    this.handle = function(err) {
+        var message = err instanceof Error ? err.message : err;
+
+        for (var i = 0, tasksLength = tasks.length; i < tasksLength; i++) {
+            tasks[i](message);
         }
     };
 }

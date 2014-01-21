@@ -1,11 +1,6 @@
-var messages = require('../config/messages');
+var templates = require('../config/templates');
 
-exports.render = function (templateName, params) {
-    if (!messages[templateName]) {
-        throw new Error('Can\'t find email template with name: ' + templateName);
-    }
-
-    var template = messages[templateName];
+exports.render = function (template, params) {
     params = params || {};
 
     for(var param in params) {
@@ -15,4 +10,12 @@ exports.render = function (templateName, params) {
     }
 
     return template;
+};
+
+exports.renderTemplate = function (templateName, params) {
+    if (!templates[templateName]) {
+        throw new Error('Can\'t find email template with name: ' + templateName);
+    }
+
+    return this.render(templates[templateName], params);
 };
