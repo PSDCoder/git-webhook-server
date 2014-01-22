@@ -5,6 +5,7 @@ var exec = require('child_process').exec;
 
 //own modules
 var conf = require('./config/main');
+var messages = require('./config/messages');
 var logger = require('./modules/logger')(true);
 var templates = require('./modules/templates');
 var response = require('./modules/http-response');
@@ -14,15 +15,19 @@ var repositoryAdapters = {};
 //Error handler setup
 var errorHandlerModule = require('./modules/error-handler');
 var errorTasks = [
-    function(message) {
+    function (message) {
+        console.log(message);
+    },
+    function (message) {
         logger.log(logger.ERROR, message);
     },
-    function(message) {
+    function (message) {
         if (conf.notifyOnErrors) {
             notifications.send(templates.renderTemplate('error', {error: message}));
         }
     }
 ];
+
 var errorHandler = errorHandlerModule(errorTasks).handle;
 process.on('uncaughtException', errorHandler);
 
@@ -86,39 +91,48 @@ http.createServer(function(req, res) {
 
         switch (requestUrl.pathname) {
             case '/':
-                var repositoryConfig = conf.repositories[postJson.repository.name];
+                var repositoryConfig = conf.repositories[requestUrl.query.repository];
 
                 //cache repository adapter
                 if (!repositoryAdapters[repositoryConfig.type]) {
                     repositoryAdapters[repositoryConfig.type] = require('./modules/repository-adapters/' + repositoryConfig.type);
                 }
 
-                var postUpdateData = repositoryAdapters[repositoryConfig.type].getRepositoryData();
-                for(var n = 0, commandsLength = repositoryConfig.commands.length; n < commandsLength; n++) {
-                    if (repositoryConfig.branches === '*' || repositoryConfig.branches[postUpdateData.branch]) {
-                        var renderedCommand = templates.render(repositoryConfig.commands[n], {
-                            path: repositoryConfig.path
-                        });
-
-                        exec(renderedCommand, function (err) {
-                            if (err) {
-                                errorHandler(err);
-                            }
-                        });
+                repositoryAdapters[repositoryConfig.type](postJson).getRepositoryData(function (err, postUpdateData) {
+                    if (err) {
+                        errorHandler(err);
+                        response(res, 400, err.message);
+                        return;
                     }
-                }
 
-                if (repositoryConfig.notifyOnUpdate) {
-                    sendNotification(renderTemplate(conf.commands.messages.pullSuccess, {
-                        repository: postJson.repository.name,
-                        branch: pushBranch,
-                        host: conf.serverName
-                    }));
-                }
+                    for(var n = 0, commandsLength = repositoryConfig.commands.length; n < commandsLength; n++) {
+                        if (repositoryConfig.branches === '*' || repositoryConfig.branches[postUpdateData.branch]) {
+                            var renderedCommand = templates.render(repositoryConfig.commands[n], {
+                                path: repositoryConfig.path
+                            });
 
-                logger.log(logger.INFO, 'Repository "' + postJson.repository.name + '" was successfully updated. Commit: ' + postJson.after);
+                            exec(renderedCommand, function (err) {
+                                if (err) {
+                                    errorHandler(err);
+                                    response(res, 400, err.message);
+                                }
+                            });
+                        }
+                    }
 
-                response(res, 200);
+                    if (repositoryConfig.notifyOnUpdate) {
+                        notifications.send(templates.render(messages.pullSuccess, {
+                            repository: requestUrl.query.repository,
+                            branch: postUpdateData.branch,
+                            serverName: conf.serverName
+                        }));
+                    }
+
+                    logger.log(logger.INFO, 'Repository "' + postJson.repository.name + '" was successfully updated. Commit: ' + postUpdateData.commit);
+
+                    response(res, 200);
+                });
+
                 break;
             default:
                 response(res, 404);

@@ -2,7 +2,7 @@ function ErrorHandler(tasks) {
     tasks = tasks || [];
 
     this.handle = function(err) {
-        var message = err instanceof Error ? err.message : err;
+        var message = err instanceof Error ? err.message + ' - stack: ' + JSON.stringify(err.stack) : err;
 
         for (var i = 0, tasksLength = tasks.length; i < tasksLength; i++) {
             tasks[i](message);

@@ -1,4 +1,4 @@
 module.exports = {
-    pullSuccess: 'Repository: **repository**, branch: **branch** on **host** was updated',
+    pullSuccess: 'Repository: **repository**, branch: **branch** on **serverName** was updated',
     error: 'Unhandled error: **error**'
 };

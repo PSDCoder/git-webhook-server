@@ -6,7 +6,7 @@ module.exports = {
     port: 8080,
     key: 'a*(3kla0kj230s',
     email: 'psdcoder@gmail.com',
-    notifyOnErrors: true,
+    notifyOnErrors: false,
     commands: commands,
     repositories: {
         coins: {
