@@ -1,3 +1,5 @@
+'use strict';
+
 var Adapter = require('./Adapter');
 
 Adapter.prototype.getRepositoryData = function() {

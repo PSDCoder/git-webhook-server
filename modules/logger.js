@@ -1,21 +1,26 @@
+'use strict';
+
 var fs = require('fs');
 var path = require('path');
 
-function Logger(loggingEnabled) {
-    this.INFO = 'info';
-    this.WARNING = 'warning';
-    this.ERROR = 'error';
-
-    this.log = function(level, message) {
-        if (loggingEnabled && this.hasOwnProperty(level.toUpperCase())) {
-            fs.appendFile(
-                path.normalize(__dirname + '/../logs/' + level + '.log'),
-                new Date().toString() + ' - [' + level.slice(0, 1).toUpperCase() + level.slice(1) + '] - Message: ' + message + '\n'
-            );
-        }
-    }
+function Logger(logsEnabled, logsPath) {
+    this.logsEnabled = logsEnabled;
+    this.logsPath = logsPath;
 }
 
-module.exports = function(enabled) {
-    return new Logger(enabled);
+Logger.prototype.INFO = 'Info';
+Logger.prototype.WARNING = 'Warning';
+Logger.prototype.ERROR = 'Error';
+
+Logger.prototype.log = function(level, message) {
+    if (this.logsEnabled && this.hasOwnProperty(level.toUpperCase())) {
+        fs.appendFile(
+            path.normalize(this.logsPath + level.toLowerCase() + '.log'),
+            new Date().toString() + ' - [' + level + '] - Message: ' + message + '\n'
+        );
+    }
+};
+
+module.exports = function(logsEnabled, logsPath) {
+    return new Logger(logsEnabled, logsPath);
 };

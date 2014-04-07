@@ -1,12 +1,16 @@
+'use strict';
+
 var commands = require('./commands');
-var repositoryTypes = require('../modules/repository-types');
+var repositoryTypes = require('../modules/repositoryTypes');
 
 module.exports = {
     serverName: 'digital ocean (psdcoder)', //used for email notifications
     port: 8080,
-    key: 'a*(3kla0kj230s',
     email: 'psdcoder@gmail.com',
-    notifyOnErrors: true,
+    secretKey: 'a*(3kla0kj230s',
+    notifyToEmailOnErrors: true,
+    enableLogs: true,
+    logsPath: __dirname + '/../logs/',
     commands: commands,
     repositories: {
         coins: {

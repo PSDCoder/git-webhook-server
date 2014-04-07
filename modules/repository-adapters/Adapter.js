@@ -1,3 +1,5 @@
+'use strict';
+
 function Adapter(postData) {
     this.postData = postData;
 }

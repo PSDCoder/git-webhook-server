@@ -1,3 +1,5 @@
+'use strict';
+
 var exec = require('child_process').exec;
 var templates = require('./templates');
 var config = require('../config/main');

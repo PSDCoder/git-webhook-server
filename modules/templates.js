@@ -1,4 +1,6 @@
-var templates = require('../config/templates');
+'use strict';
+
+var messageTemplates = require('../config/messageTemplates');
 
 exports.render = function (template, params) {
     params = params || {};
@@ -13,9 +15,9 @@ exports.render = function (template, params) {
 };
 
 exports.renderTemplate = function (templateName, params) {
-    if (!templates[templateName]) {
+    if (!messageTemplates[templateName]) {
         throw new Error('Can\'t find email template with name: ' + templateName);
     }
 
-    return this.render(templates[templateName], params);
+    return this.render(messageTemplates[templateName], params);
 };
