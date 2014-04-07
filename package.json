@@ -1,0 +1,26 @@
+{
+  "name": "git-webhook-server",
+  "version": "0.0.0",
+  "description": "Webhook server for such services, like github, gitlab, bitbacket",
+  "main": "git-webhook-server.js",
+  "dependencies": {
+    "vow": "~0.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/PSDCoder/git-webhook-server.git"
+  },
+  "keywords": [
+    "git",
+    "webhook",
+    "github",
+    "gitlab",
+    "bitbucket"
+  ],
+  "author": "Pavel Grynchenko",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/PSDCoder/git-webhook-server/issues"
+  },
+  "homepage": "https://github.com/PSDCoder/git-webhook-server"
+}
